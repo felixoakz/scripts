@@ -35,6 +35,8 @@ packages=(
   "kitty"        # Terminal emulator
   "nginx"        # Web server
   "zsh"          # Z shell
+  "certbot"      # Certbot for SSL certificate management
+  "python3-certbot-nginx"  # Certbot plugin for Nginx
 )
 
 # Install each package
@@ -59,6 +61,29 @@ fi
 print_message "$COLOR_YELLOW" "Installing Oh My Zsh..."
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || {
   print_message "$COLOR_RED" "Failed to install Oh My Zsh."
+  exit 1
+}
+
+# Configure SSL Certificate
+DOMAIN="f-server.ddns.net"
+
+print_message "$COLOR_YELLOW" "Obtaining SSL certificate for $DOMAIN..."
+sudo certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email your_email@example.com || {
+  print_message "$COLOR_RED" "Failed to obtain SSL certificate."
+  exit 1
+}
+
+# Test Nginx configuration
+print_message "$COLOR_YELLOW" "Testing Nginx configuration..."
+sudo nginx -t || {
+  print_message "$COLOR_RED" "Nginx configuration test failed."
+  exit 1
+}
+
+# Reload Nginx to apply changes
+print_message "$COLOR_YELLOW" "Reloading Nginx..."
+sudo systemctl reload nginx || {
+  print_message "$COLOR_RED" "Failed to reload Nginx."
   exit 1
 }
 
