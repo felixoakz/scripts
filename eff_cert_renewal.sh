@@ -1,7 +1,9 @@
 #!/bin/bash
 
+DOMAIN="<your-domain>" # Set your domain here
+
 # Get the expiration date in seconds since epoch
-expiry_date=$(sudo openssl x509 -in /etc/letsencrypt/live/oakz.duckdns.org/fullchain.pem -noout -enddate | cut -d'=' -f2)
+expiry_date=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/fullchain.pem -noout -enddate | cut -d'=' -f2)
 expiry_seconds=$(date -d "$expiry_date" +%s)
 
 # Get the current date in seconds since epoch

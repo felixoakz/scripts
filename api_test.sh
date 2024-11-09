@@ -1,6 +1,6 @@
 #!/bin/bash
 
-URL="http://localhost:8000/test"
+URL="http://localhost:8000/test"  # Replace with the URL you want to test
 TOTAL_REQUESTS=1000
 TOTAL_TIME=0
 

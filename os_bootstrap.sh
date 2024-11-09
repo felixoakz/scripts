@@ -23,21 +23,30 @@ print_message() {
 # Install yay if not already installed
 if ! command -v yay &>/dev/null; then
   print_message "$COLOR_YELLOW" "yay not found, installing yay..."
-  sudo pacman -S --needed git base-devel | tee -a "$LOG_FILE" || {
-    print_message "$COLOR_RED" "Failed to install required packages for yay."
-    exit 1
-  }
-  git clone https://aur.archlinux.org/yay.git | tee -a "$LOG_FILE" || {
-    print_message "$COLOR_RED" "Failed to clone yay repository."
-    exit 1
-  }
+  sudo pacman -S --needed git base-devel | tee -a "$LOG_FILE" || { print_message "$COLOR_RED" "Failed to install required packages for yay."; exit 1; }
+  git clone https://aur.archlinux.org/yay.git | tee -a "$LOG_FILE" || { print_message "$COLOR_RED" "Failed to clone yay repository."; exit 1; }
   cd yay
-  makepkg -si | tee -a "$LOG_FILE" || {
-    print_message "$COLOR_RED" "Failed to build and install yay."
-    exit 1
-  }
+  makepkg -si | tee -a "$LOG_FILE" || { print_message "$COLOR_RED" "Failed to build and install yay."; exit 1; }
   cd ..
 fi
+
+# Function to check if a package is available in the repositories or AUR
+is_package_available() {
+  local package=$1
+  # Check if the package is available in the official repositories
+  pacman -Qi "$package" &>/dev/null || yay -Qi "$package" &>/dev/null
+}
+
+# Function to install a package
+install_package() {
+  local package=$1
+  if is_package_available "$package"; then
+    print_message "$COLOR_GREEN" "$package is available in the repositories or AUR."
+  else
+    print_message "$COLOR_YELLOW" "$package not found. Installing with yay..."
+    yay -S --noconfirm "$package" | tee -a "$LOG_FILE" || { print_message "$COLOR_RED" "Failed to install $package with yay."; exit 1; }
+  fi
+}
 
 # List of system packages to install
 system_packages=(
@@ -107,8 +116,8 @@ system_packages=(
   "yazi"                            # Console-based file manager with VI key bindings
   "python-pillow"                   # Python Imaging Library (Pillow)
   "xdg-desktop-portal-hyprland-git" # Hyprland-specific implementation of xdg-desktop-portal
-  "insomnia"
-  "fzf"
+  "insomnia"                        # REST client for debugging APIs
+  "fzf"                             # Command-line fuzzy finder
 )
 
 # List of workspace packages to install
@@ -138,50 +147,7 @@ workspace_packages=(
   "android-studio" # Android Studio, IDE for Android development
 )
 
-# Function to check if a package is available in the repositories or AUR
-is_package_available() {
-  local package=$1
-
-  # Check if the package is available in the official repositories
-  if pacman -Qi "$package" &>/dev/null; then
-    return 0 # Package is available
-  fi
-
-  # Check if the package is available in the AUR
-  if yay -Qi "$package" &>/dev/null; then
-    return 0 # Package is available
-  fi
-
-  return 1 # Package is not available
-}
-
-# Function to install a package with yay or fall back to pacman
-install_package() {
-  local package=$1
-
-  # Check if the package is available in the repositories
-  if is_package_available "$package"; then
-    print_message "$COLOR_GREEN" "$package is available in the repositories or AUR."
-  else
-    print_message "$COLOR_YELLOW" "$package is not available in the repositories or AUR."
-    print_message "$COLOR_YELLOW" "Attempting to install $package with yay..."
-
-    if yay -S --noconfirm "$package" | tee -a "$LOG_FILE"; then
-      print_message "$COLOR_GREEN" "$package installed successfully with yay."
-      return
-    else
-      print_message "$COLOR_RED" "Failed to install $package with yay. Trying with pacman..."
-      if sudo pacman -S --noconfirm "$package" | tee -a "$LOG_FILE"; then
-        print_message "$COLOR_GREEN" "$package installed successfully with pacman."
-        return
-      else
-        print_message "$COLOR_RED" "Failed to install $package with pacman."
-      fi
-    fi
-  fi
-}
-
-# Check arguments
+# Install system packages
 if [ "$1" == "system" ]; then
   print_message "$COLOR_YELLOW" "Installing system packages..."
   for package in "${system_packages[@]}"; do
@@ -193,7 +159,6 @@ elif [ "$1" == "workspace" ]; then
     install_package "$package"
   done
 else
-  # Install both system and workspace packages if no argument is provided
   print_message "$COLOR_YELLOW" "Installing system packages..."
   for package in "${system_packages[@]}"; do
     install_package "$package"
@@ -203,69 +168,18 @@ else
   for package in "${workspace_packages[@]}"; do
     install_package "$package"
   done
-
   # Clone and stow dotfiles if not already present
   if [ ! -d "dotfiles" ]; then
     print_message "$COLOR_YELLOW" "Cloning dotfiles repository..."
-    git clone https://github.com/felixoakz/dotfiles.git | tee -a "$LOG_FILE" || {
-      print_message "$COLOR_RED" "Failed to clone dotfiles repository."
-      exit 1
-    }
+    git clone https://github.com/felixoakz/dotfiles.git | tee -a "$LOG_FILE" || { print_message "$COLOR_RED" "Failed to clone dotfiles repository."; exit 1; }
   fi
 
   print_message "$COLOR_YELLOW" "Stowing dotfiles..."
   cd dotfiles
-  stow . | tee -a "$LOG_FILE" || {
-    print_message "$COLOR_RED" "Failed to stow dotfiles."
-    exit 1
-  }
+  stow . | tee -a "$LOG_FILE" || { print_message "$COLOR_RED" "Failed to stow dotfiles."; exit 1; }
   cd ..
 
   # Change default shell to zsh
   print_message "$COLOR_YELLOW" "Changing default shell to zsh..."
-  chsh -s "$(which zsh)" | tee -a "$LOG_FILE" || {
-    print_message "$COLOR_RED" "Failed to change default shell to zsh."
-    exit 1
-  }
-
-  #!/bin/bash
-
-  # Update system and install Zsh if not already installed
-  sudo pacman -Syu --noconfirm
-  if ! command -v zsh &>/dev/null; then
-    echo "Zsh not found. Installing Zsh..."
-    sudo pacman -S --noconfirm zsh
-  else
-    echo "Zsh is already installed."
-  fi
-
-  # Optionally change default shell to Zsh
-  read -p "Do you want to set Zsh as your default shell? (y/n): " set_default
-  if [[ "$set_default" == "y" ]]; then
-    chsh -s /bin/zsh
-    echo "Default shell changed to Zsh. You need to log out and log back in for this change to take effect."
-  fi
-
-  # Install Oh My Zsh
-  echo "Installing Oh My Zsh..."
-  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-
-  # Optional: Install Oh My Zsh plugins
-  read -p "Do you want to install additional Oh My Zsh plugins (zsh-autosuggestions and zsh-syntax-highlighting)? (y/n): " install_plugins
-  if [[ "$install_plugins" == "y" ]]; then
-    echo "Installing zsh-autosuggestions and zsh-syntax-highlighting plugins..."
-    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-    echo "Plugins installed."
-  fi
-
-  echo "Oh My Zsh installation and setup complete!"
-
-  echo -e "[Settings]\ngtk-application-prefer-dark-theme=1\ngtk-theme-name=Adwaita-dark" | tee -a ~/.config/gtk-3.0/settings.ini > /dev/null
-
-  # Final cleanup
-  print_message "$COLOR_YELLOW" "Cleaning up..."
-  rm -rf dotfiles
+  chsh -s "$(which zsh)" | tee -a "$LOG_FILE" || { print_message "$COLOR_RED" "Failed to change default shell to zsh."; exit 1; }
 fi
-
-print_message "$COLOR_GREEN" "Installation script completed."
