@@ -15,11 +15,12 @@ If you decide to use them, please be aware that they are tailored to my environm
 ## Instructions
 
 1. **Make Scripts Executable**
-   To make any script executable, run the following command in the terminal:
+   Run the following command in the terminal:
 
    ```$ chmod +x <script_name>.sh```
 
-2. **Run Scripts After making the script executable, run it with:**
+2. **Run Scripts**
+   After making the script executable, run it with:
 
     ```$ ./<script_name>.sh```
 
