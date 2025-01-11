@@ -8,9 +8,9 @@ If you decide to use them, please be aware that they are tailored to my environm
 - **api_test.sh**: Script to test an API endpoint.
 - **eff_cert_renewal.sh**: Efficient SSL certificate renewal automation.
 - **nginx_base_conf**: Base Nginx configuration file.
-- **os_bootstrap.sh**: Basic system setup for minimal environments.
+- **bootstrap_os.sh**: Basic system setup for minimal environments.
 - **pomodoro.sh**: Pomodoro timer for productivity.
-- **vm_bootstrap.sh**: Bootstrap script tailored for a VM setup (system installation, Zsh, packages, SSL setup).
+- **bootstrap_vm.sh**: Bootstrap script tailored for a VM setup (system installation, Zsh, packages, SSL setup).
 
 ## Instructions
 
